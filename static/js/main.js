@@ -1,14 +1,14 @@
 let globalValues = {};
 
 let tableConfig = {
-    'width': 850,
+    'width': 640,
     'height': 300,
     'columns': [
         {
             'name': 'Name',
             'type': 'string',
             'data': x => x.name,
-            'width': 192
+            'width': 140
         },
         {
             'name': 'Rides Dist.',
@@ -20,14 +20,14 @@ let tableConfig = {
                     'q3': x.rides_q3,
                 }
             },
-            'width': 96,
+            'width': 80,
             'sortValue': x => x.rides_median
         },
         {
             'name': 'Avg. Rides',
             'type': 'number',
             'data': x => x.rides_mean,
-            'width': 80,
+            'width': 64,
             'format': x => x.toLocaleString(undefined, {maximumFractionDigits: 0})
         },
         {
