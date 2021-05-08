@@ -1,12 +1,12 @@
 let globalValues = {};
 
-let table_config = {
+let tableConfig = {
     'columns': [
         {
             'name': 'name',
             'type': 'string',
             'data': x => x.name,
-            'width': '12rem'
+            'width': '15rem'
         },
         {
             'name': 'rides dist',
@@ -18,32 +18,33 @@ let table_config = {
                     'q3': x.rides_q3,
                 }
             },
-            'width': 100
+            'width': '6rem',
+            'sortValue': x => x.rides_median
         },
         {
             'name': 'start',
             'type': 'date',
             'data': x => x.date_min,
-            'width': '5rem'
+            'width': '6rem'
         },
         {
             'name': 'end',
             'type': 'date',
             'data': x => x.date_max,
-            'width': '5rem'
+            'width': '6rem'
         },
         {
             'name': 'latitude',
             'type': 'number',
             'data': x => x.latitude,
-            'width': '3rem',
+            'width': '4rem',
             'format': x => x.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})
         },
         {
             'name': 'longitude',
             'type': 'number',
             'data': x => x.longitude,
-            'width': '3rem',
+            'width': '4rem',
             'format': x => x.toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})
         }
 
@@ -76,7 +77,7 @@ function parseRow(row) {
     }
 
     let outputString = ''
-    table_config.columns.forEach(col => {
+    tableConfig.columns.forEach(col => {
         if (col.type == 'string')           outputString += `<div style="width:${col.width}">${displayString(col.data(row))}</div>`;
         if (col.type == 'date')             outputString += `<div style="width:${col.width}">${displayDate(col.data(row))}</div>`;
         if (col.type == 'spark-boxplot')    outputString += `<div style="width:${col.width}">${displaySparkBoxplot(col.data(row), col.width)}</div>`;
@@ -92,10 +93,19 @@ d3.json('/api/v1.0/rides_by_station').then(function(data) {
     globalValues.minRide = d3.min(data, d => d.rides_min)
     globalValues.maxRide = d3.max(data, d => d.rides_max)
 
-    let rows = d3.select("#table").selectAll('.row').data(data)
+    d3.select("#table").append('div').attr('class', 'table-header')
+        .selectAll('.table-header-cell').data(tableConfig.columns)
+        .enter().append('div')
+        .attr('class', 'table-header-cell')
+        .style('height', '1rem')
+        .style('width', d => d.width)
+        .text(d => d.name)
+
+
+    let rows = d3.select("#table").selectAll('.table-row').data(data)
 
     rows.enter().append('div')
-        .attr('class', 'row')
+        .attr('class', 'table-row')
         .html(d =>parseRow(d))
     
 })
