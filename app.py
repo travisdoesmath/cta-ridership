@@ -21,7 +21,7 @@ rides_by_station = ridership_df.groupby('station_id').agg({
     'date':['min','max']
 })
 rides_by_station.columns = rides_by_station.columns.map('_'.join)
-rides_by_station.rename(columns={'stationname_first':'name'}, inplace=True)
+rides_by_station.rename(columns={'stationname_first':'name', 'latitude_first':'latitude', 'longitude_first':'longitude'}, inplace=True)
 
 @app.route('/')
 def index():
@@ -29,7 +29,7 @@ def index():
 
 @app.route('/api/v1.0/rides_by_station')
 def table_data():
-    return rides_by_station.to_json(orient='records')
+    return pd.merge(rides_by_station.reset_index(), l_stations_df, how='left', left_on='station_id', right_on='MAP_ID').to_json(orient='records')
 
 if __name__=="__main__":
     app.run(debug=True)
