@@ -29,6 +29,10 @@ body {
     margin-left: 1rem;
 }
 
+.table-header>div {
+    cursor: pointer;
+}
+
 .table-row:nth-child(2n+1) {
     background-color: #282828;
 }
@@ -50,4 +54,15 @@ body {
 
 .data-label {
     font-size:0.75rem;
+}
+
+#table {
+    display: inline-block;
+}
+
+#map {
+    display: inline-block;
+    height: 500px;
+    width: 500px;
+    margin-left: 1rem;
 }

@@ -1,4 +1,4 @@
-let globalValues = {};
+let globals = {};
 
 function getLines(d) {
     let lines = [];
@@ -15,35 +15,37 @@ function getLines(d) {
 }
 
 let tableConfig = {
-    'width': 600,
-    'height': 400,
-    'sort': {
-        'column':'rides-distribution',
-        'direction': 'descending'
+    width: 800,
+    height: 500,
+    sort: {
+        'column':'station-name',
+        'direction':'descending'
     },
-    // 'sort': {
-    //     'column':'location',
-    //     'direction':'westToEast'
-    // },
-    'columns': [
+    columns: [
         {
-            'id': 'station-name',
-            'name': 'Name',
-            'type': 'indicators',
-            'data': x => {
+            id: 'station-name',
+            name: 'Name',
+            type: 'indicators',
+            data: x => {
                 let lines = getLines(x)
                 return {
-                    'name': x.name,
-                    'indicators': lines
+                    name: x.name,
+                    indicators: lines
                 }
             },
-            'width': 160
+            width: 160,
+            sortable: true,
+            sortComparators: {
+                'ascending': (a, b) => a.name.localeCompare(b.name),
+                'descending': (a, b) => b.name.localeCompare(a.name)
+            },
+            sortCycle: ['ascending','descending']
         },
         {
-            'id': 'rides-distribution',
-            'name': 'Daily Rides Dist. & Average',
-            'type': 'spark-boxplot',
-            'data': x => { 
+            id: 'rides-distribution',
+            name: 'Daily Rides Dist. & Average',
+            type: 'spark-boxplot',
+            data: x => { 
                 return {
                     'q1': x.rides_q1,
                     'median': x.rides_median,
@@ -51,34 +53,20 @@ let tableConfig = {
                     'q3': x.rides_q3,
                 }
             },
-            'labelFormat': x => x.toLocaleString(undefined, {maximumFractionDigits: 0}),
-            'width': 120,
-            'sortComparators': {
+            labelFormat: x => x.toLocaleString(undefined, {maximumFractionDigits: 0}),
+            width: 152,
+            sortable: true,
+            sortComparators: {
                 'ascending': (a, b) => a.rides_median - b.rides_median,
                 'descending': (a, b) => b.rides_median - a.rides_median,
-            }
+            },
+            sortCycle: ['ascending','descending']
         },
-        // {
-        //     'id': 'average-rides',
-        //     'name': 'Avg. Daily Rides',
-        //     'type': 'hbar',
-        //     'data': x => x.rides_mean,
-        //     'width': 128,
-        //     'labelFormat': x => x.toLocaleString(undefined, {maximumFractionDigits: 0})
-        // },
-        // {
-        //     'id': 'average-rides',
-        //     'name': 'Avg. Rides',
-        //     'type': 'number',
-        //     'data': x => x.rides_mean,
-        //     'width': 64,
-        //     'format': x => x.toLocaleString(undefined, {maximumFractionDigits: 0})
-        // },
         {
-            'id': 'rides-by-weekday',
-            'name': 'Percent of Rides by Weekday',
-            'type': 'bar',
-            'data': x => {
+            id: 'rides-by-weekday',
+            name: 'Percent of Rides by Weekday',
+            type: 'bar',
+            data: x => {
                 return [
                     {'x':'Sunday','y': x.rides_sunday},
                     {'x':'Monday','y': x.rides_monday},
@@ -89,37 +77,41 @@ let tableConfig = {
                     {'x':'Saturday','y': x.rides_saturday},
                 ]
             },
-            'width': 80,
+            width: 80,
+            sortable:false
         },
         {
-            'id': 'dates-recorded',
-            'name': 'Dates Recorded (2001-2020)',
-            'type': 'spark-gantt',
-            'data': x => {
+            id: 'dates-recorded',
+            name: 'Dates Recorded (2001-2020)',
+            type: 'spark-gantt',
+            data: x => {
                 return {
                     'start': x.date_min,
                     'end': x.date_max
                 }
             },
-            'width': 96
+            width: 96,
+            sortable: false
         },
         {
-            'id': 'location',
-            'name': 'Location',
-            'type': 'spark-geo',
-            'data': x => {
+            id: 'location',
+            name: 'Location',
+            type: 'spark-geo',
+            data: x => {
                 return {
-                    'latitude': x.latitude,
-                    'longitude': x.longitude
+                    latitude: x.latitude,
+                    longitude: x.longitude
                 }
             },
-            'width': 64,
-            'sortComparators': {
-                'northToSouth': (a,b) => b.latitude - a.latitude,
-                'westToEast': (a,b) => a.longitude - b.longitude,
-                'southToNorth': (a,b) => a.latitude - b.latitude,
-                'eastToWest': (a,b) => b.longitude - a.longitude
-            }
+            width: 96,
+            sortable: true,
+            sortComparators: {
+                northToSouth: (a,b) => b.latitude - a.latitude,
+                westToEast: (a,b) => a.longitude - b.longitude,
+                southToNorth: (a,b) => a.latitude - b.latitude,
+                eastToWest: (a,b) => b.longitude - a.longitude
+            },
+            sortCycle: ['northToSouth', 'eastToWest','southToNorth','westToEast']
         }
     ]
 }
@@ -131,7 +123,7 @@ function parseRow(row) {
         let height = 32;
 
         let xScale = d3.scaleLinear()
-            .domain([globalValues.minRide, globalValues.maxRide])
+            .domain([globals.minRide, globals.maxRide])
             .range([0, width])
 
         let iqr = d.q3 - d.q1;
@@ -159,14 +151,14 @@ function parseRow(row) {
         let r = 3;
 
         let xScale = d3.scaleTime()
-            .domain([globalValues.minStart, globalValues.maxEnd])
+            .domain([globals.minStart, globals.maxEnd])
             .range([r, width - 2*r])
 
         let outputString = `<svg width="${width}" height="${height}">`
         outputString += `<g transform="translate(1,0)">`
         outputString += `<line x1=${xScale(d.start)} y1=${0.5*height} x2=${xScale(d.end)} y2=${0.5*height} style="stroke: #DDD"></line>`
-        outputString += `<circle cx=${xScale(d.start)} cy=${0.5*height} r=${r} fill="${d.start - globalValues.minStart == 0 ? '#DDD' : '#000'}" stroke="white"></circle>`
-        outputString += `<circle cx=${xScale(d.end)} cy=${0.5*height} r=${r} fill="${d.end - globalValues.maxEnd == 0 ? '#DDD' : '#000'}" stroke="white"></circle>`
+        outputString += `<circle cx=${xScale(d.start)} cy=${0.5*height} r=${r} fill="${d.start - globals.minStart == 0 ? '#DDD' : '#000'}" stroke="white"></circle>`
+        outputString += `<circle cx=${xScale(d.end)} cy=${0.5*height} r=${r} fill="${d.end - globals.maxEnd == 0 ? '#DDD' : '#000'}" stroke="white"></circle>`
 
         outputString += '</g></svg>'
 
@@ -181,11 +173,11 @@ function parseRow(row) {
         let r = 2;
 
         let xScale = d3.scaleLinear()
-            .domain([globalValues.minLongitude, globalValues.maxLongitude])
+            .domain([globals.minLongitude, globals.maxLongitude])
             .range([r, width - 2*r])
 
         let yScale = d3.scaleLinear()
-            .domain([globalValues.minLatitude, globalValues.maxLatitude])
+            .domain([globals.minLatitude, globals.maxLatitude])
             .range([height - 2*r, r])
 
         let outputString = `<svg width="${width}" height="${height}" style="shape-rendering: crispEdges; display: block; margin:0 auto;">`
@@ -226,7 +218,7 @@ function parseRow(row) {
         let height = 33;
 
         let xScale = d3.scaleLinear()
-            .domain([globalValues.minAverage, globalValues.maxAverage])
+            .domain([globals.minAverage, globals.maxAverage])
             .range([0, 0.625*width])
 
         let outputString = `<svg width="${width}" height="${height}" style="shape-rendering: crispEdges; display: block; margin:0 auto;">`
@@ -269,43 +261,68 @@ function parseRow(row) {
     return outputString;
 }
 
-d3.json('static/data/cta_ridership.json').then(function(data) {
-    console.log(data)
+function parseHeader(d) {
+    let outputString = `${d.name}`
 
-    data.forEach(d => {
-        d.date_min = new Date(d.date_min)
-        d.date_max = new Date(d.date_max)
-    })
+    if (tableConfig.sort.column == d.id) {
+        if (tableConfig.sort.direction == 'ascending' || tableConfig.sort.direction == 'southToNorth') {
+            outputString += ' <i class="fas fa-caret-up"></i>'
+        } else if (tableConfig.sort.direction == 'descending' || tableConfig.sort.direction == 'northToSouth') {
+            outputString += ' <i class="fas fa-caret-down"></i>'
+        } else if (tableConfig.sort.direction == 'westToEast') {
+            outputString += ' <i class="fas fa-caret-right"></i>'
+        } else if (tableConfig.sort.direction == 'eastToWest') {
+            outputString += ' <i class="fas fa-caret-left"></i>'
+        }
+    }
 
+    return outputString
+}
+
+let mapboxUrl = 'https://api.mapbox.com/styles/v1/travisdoesmath/ckohfz7lq12so17rf1afs8xgv/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoidHJhdmlzZG9lc21hdGgiLCJhIjoiY2poOWNrYjRkMDQ2ejM3cGV1d2xqa2IyeCJ9.34tYWBvPBM_h8_YS3Z7__Q'
+    
+let map = L.map("map", {
+    center: [41.8781, -87.6298],
+    zoom: 10
+})
+
+L.tileLayer(mapboxUrl, {
+    attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
+    maxZoom: 18,
+}).addTo(map);
+
+function displayTable(data) {
     let sortComparator = tableConfig.columns.filter(x => x.id == tableConfig.sort.column)[0].sortComparators[tableConfig.sort.direction]
 
     data.sort(sortComparator)
 
-    globalValues.minRide = d3.min(data, d => d.rides_min)
-    globalValues.maxRide = d3.max(data, d => d.rides_max)
-
-    globalValues.minAverage = d3.min(data, d => d.rides_mean)
-    globalValues.maxAverage = d3.max(data, d => d.rides_mean)
-
-    globalValues.minStart = d3.min(data, d => d.date_min)
-    globalValues.maxEnd = d3.max(data, d => d.date_max)
-
-    globalValues.minLatitude = d3.min(data, d => d.latitude)
-    globalValues.maxLatitude = d3.max(data, d => d.latitude)
-    globalValues.minLongitude = d3.min(data, d => d.longitude)
-    globalValues.maxLongitude = d3.max(data, d => d.longitude)
-
-    d3.select("#table").style('width', `${tableConfig.width + 17}px`)
+    d3.select("#table").html('').style('width', `${tableConfig.width + 17}px`)
 
     let tableHeader = d3.select("#table").append('div')
         .attr('class', 'table-header')
         
-    tableHeader.selectAll('.table-header-cell').data(tableConfig.columns)
-        .enter().append('div')
+    let headers = tableHeader.selectAll('.table-header-cell').data(tableConfig.columns)
+
+    headers.enter().append('div')
         .attr('class', 'table-header-cell')
+        .merge(headers)
         .style('height', '1rem')
         .style('width', d => d.width + 'px')
-        .text(d => d.name)
+        .html(parseHeader)
+        .on('click', function(event, d) {
+            if (d.sortable) {
+                if (tableConfig.sort.column == d.id) {
+                    tableConfig.sort.direction = d.sortCycle[(d.sortCycle.indexOf(tableConfig.sort.direction) + 1) % d.sortCycle.length]
+                } else {
+                    tableConfig.sort = {
+                        column: d.id,
+                        direction: d.sortCycle[0]
+                    }
+                }
+
+                displayTable(globals.data);
+            }
+        })
 
     let tableBody = d3.select("#table").append('div')
         .attr('class', 'table-body')
@@ -317,6 +334,53 @@ d3.json('static/data/cta_ridership.json').then(function(data) {
 
     rows.enter().append('div')
         .attr('class', 'table-row')
+        .merge(rows)
         .style('width', tableConfig.width + 'px')
         .html(d =>parseRow(d))   
+}
+
+d3.json('static/data/cta_ridership.json').then(function(data) {
+    console.log(data)
+
+    data.forEach(d => {
+        d.date_min = new Date(d.date_min)
+        d.date_max = new Date(d.date_max)
+
+        color = '#888'
+        if (d.Y) color = '#f9e300'
+        if (d.Pnk) color = '#e27ea6'
+        if (d.P || d.Pexp) color = '#522398'
+        if (d.O) color = '#f9461c'
+        if (d.G) color = '#009b3a'
+        if (d.BRN) color = '#62361b'
+        if (d.RED) color = '#c60c30'
+        if (d.BLUE) color = '#00a1de'
+
+        L.circleMarker([d.latitude, d.longitude], {
+            radius: Math.sqrt(d.rides_mean) * 0.1,
+            stroke: true,
+            weight: 1,
+            color: color,
+            opacity: 0.5,
+            fillOpacity: 0.4
+        }).addTo(map);
+    })
+
+    globals.data = data;
+
+    globals.minRide = d3.min(data, d => d.rides_min)
+    globals.maxRide = d3.max(data, d => d.rides_max)
+
+    globals.minAverage = d3.min(data, d => d.rides_mean)
+    globals.maxAverage = d3.max(data, d => d.rides_mean)
+
+    globals.minStart = d3.min(data, d => d.date_min)
+    globals.maxEnd = d3.max(data, d => d.date_max)
+
+    globals.minLatitude = d3.min(data, d => d.latitude)
+    globals.maxLatitude = d3.max(data, d => d.latitude)
+    globals.minLongitude = d3.min(data, d => d.longitude)
+    globals.maxLongitude = d3.max(data, d => d.longitude)
+
+    displayTable(data);
 })
