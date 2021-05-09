@@ -1,9 +1,14 @@
+:root {
+    color-scheme: dark;
+}
+
 body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
 .table {
-    background: #B3ddf2;
+    background: #222;
+    color: white;
     padding: 10px 0 25px 0;
     border-radius: 15px;
 }
@@ -11,6 +16,7 @@ body {
 .table-header {
     padding-bottom: 0.5rem;
     font-weight: bold;
+    color: #CCC;
 }
 
 .table-row {
@@ -24,11 +30,11 @@ body {
 }
 
 .table-row:nth-child(2n+1) {
-    background-color: #FFF;
+    background-color: #282828;
 }
 
 .table-row:nth-child(2n) {
-    background-color: #F8F8F8;
+    background-color: #333;
 }
 
 .table-cell {
