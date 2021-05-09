@@ -3,14 +3,24 @@ let globalValues = {};
 let tableConfig = {
     'width': 640,
     'height': 300,
+    'sort': {
+        'column':'rides-distribution',
+        'direction': 'descending'
+    },
+    // 'sort': {
+    //     'column':'location',
+    //     'direction':'westToEast'
+    // },
     'columns': [
         {
+            'id': 'station-name',
             'name': 'Name',
             'type': 'string',
             'data': x => x.name,
             'width': 140
         },
         {
+            'id': 'rides-distribution',
             'name': 'Rides Dist.',
             'type': 'spark-boxplot',
             'data': x => { 
@@ -21,16 +31,29 @@ let tableConfig = {
                 }
             },
             'width': 80,
-            'sortValue': x => x.rides_median
+            'sortComparators': {
+                'ascending': (a, b) => a.rides_median - b.rides_median,
+                'descending': (a, b) => b.rides_median - a.rides_median,
+            }
         },
         {
-            'name': 'Avg. Rides',
-            'type': 'number',
+            'id': 'average-rides',
+            'name': 'Avg. Daily Rides',
+            'type': 'hbar',
             'data': x => x.rides_mean,
             'width': 64,
-            'format': x => x.toLocaleString(undefined, {maximumFractionDigits: 0})
+            'labelFormat': x => x.toLocaleString(undefined, {maximumFractionDigits: 0})
         },
+        // {
+        //     'id': 'average-rides',
+        //     'name': 'Avg. Rides',
+        //     'type': 'number',
+        //     'data': x => x.rides_mean,
+        //     'width': 64,
+        //     'format': x => x.toLocaleString(undefined, {maximumFractionDigits: 0})
+        // },
         {
+            'id': 'rides-by-weekday',
             'name': 'Percent of Rides by Weekday',
             'type': 'bar',
             'data': x => {
@@ -47,6 +70,7 @@ let tableConfig = {
             'width': 80,
         },
         {
+            'id': 'dates-recorded',
             'name': 'Dates Recorded (2001-2020)',
             'type': 'spark-gantt',
             'data': x => {
@@ -57,21 +81,8 @@ let tableConfig = {
             },
             'width': 96
         },
-        // {
-        //     'name': 'start',
-        //     'type': 'date',
-        //     'data': x => x.date_min,
-        //     'width': 96,
-        //     'format': d3.timeFormat('%Y-%m-%d')
-        // },
-        // {
-        //     'name': 'end',
-        //     'type': 'date',
-        //     'data': x => x.date_max,
-        //     'width': 96,
-        //     'format': d3.timeFormat('%Y-%m-%d')
-        // },
         {
+            'id': 'location',
             'name': 'Location',
             'type': 'spark-geo',
             'data': x => {
@@ -80,7 +91,13 @@ let tableConfig = {
                     'longitude': x.longitude
                 }
             },
-            'width': 64
+            'width': 64,
+            'sortComparators': {
+                'northToSouth': (a,b) => b.latitude - a.latitude,
+                'westToEast': (a,b) => a.longitude - b.longitude,
+                'southToNorth': (a,b) => a.latitude - b.latitude,
+                'eastToWest': (a,b) => b.longitude - a.longitude
+            }
         }
     ]
 }
@@ -94,7 +111,6 @@ function parseRow(row) {
         let xScale = d3.scaleLinear()
             .domain([globalValues.minRide, globalValues.maxRide])
             .range([0, width])
-            
 
         let iqr = d.q3 - d.q1;
         let whiskerLow = Math.max(0, d.q1 - iqr);
@@ -129,14 +145,12 @@ function parseRow(row) {
         outputString += '</g></svg>'
 
         return outputString
-
     }
     let displayNumber = (d, format) => {
         return format(d);
     }
     let displaySparkGeo = function(d, width) {
         let height = 33;
-        //let width = 17;
         width = 33;
         let r = 2;
 
@@ -157,10 +171,8 @@ function parseRow(row) {
         outputString += '</svg>'
 
         return outputString;
-
     }
     let displayBar = function(d, width) {
-        console.log('d', d);
         let height = 17;
 
         let xScale = d3.scaleBand()
@@ -184,6 +196,21 @@ function parseRow(row) {
         return outputString;
 
     }
+    let displayHBar = function(d, width, format) {
+        let height = 33;
+
+        let xScale = d3.scaleLinear()
+            .domain([globalValues.minAverage, globalValues.maxAverage])
+            .range([0, width])
+
+        let outputString = `<svg width="${width}" height="${height}" style="shape-rendering: crispEdges; display: block; margin:0 auto;">`
+        outputString += `<rect x=0 y="${0.5*height}" width="${xScale(d)}" height="${0.5*height}" fill="#75b8d9"></rect>`
+        outputString += `<text x=0 y="${0.5*height}" dy="-5" class="data-label">${format(d)}</text>`
+
+        outputString += '</svg>'
+
+        return outputString;       
+    }
 
     let outputString = ''
     tableConfig.columns.forEach(col => {
@@ -194,29 +221,30 @@ function parseRow(row) {
         if (col.type == 'spark-gantt')      outputString += `<div class="table-cell" style="width:${col.width}px"><div style="width:100%">${displaySparkGantt(col.data(row), col.width)}</div></div>`;
         if (col.type == 'spark-geo')        outputString += `<div class="table-cell" style="width:${col.width}px"><div style="width:100%">${displaySparkGeo(col.data(row), col.width)}</div></div>`;
         if (col.type == 'bar')              outputString += `<div class="table-cell" style="width:${col.width}px"><div style="width:100%">${displayBar(col.data(row), col.width)}</div></div>`;
+        if (col.type == 'hbar')             outputString += `<div class="table-cell" style="width:${col.width}px"><div style="width:100%">${displayHBar(col.data(row), col.width, col.labelFormat)}</div></div>`;
 
     })
 
     return outputString;
 }
 
-// d3.json('/api/v1.0/rides_by_station').then(function(data) {
 d3.json('static/data/cta_ridership.json').then(function(data) {
     console.log(data)
 
-    //let dateParse = d3.timeParse('%Y-%m-%d')
-
     data.forEach(d => {
-        //d.date_min = dateParse(d.date_min)
-        //d.date_max = dateParse(d.date_max)
         d.date_min = new Date(d.date_min)
         d.date_max = new Date(d.date_max)
     })
 
-    data.sort((a, b) => b.rides_median - a.rides_median)
+    let sortComparator = tableConfig.columns.filter(x => x.id == tableConfig.sort.column)[0].sortComparators[tableConfig.sort.direction]
+
+    data.sort(sortComparator)
 
     globalValues.minRide = d3.min(data, d => d.rides_min)
     globalValues.maxRide = d3.max(data, d => d.rides_max)
+
+    globalValues.minAverage = d3.min(data, d => d.rides_mean)
+    globalValues.maxAverage = d3.max(data, d => d.rides_mean)
 
     globalValues.minStart = d3.min(data, d => d.date_min)
     globalValues.maxEnd = d3.max(data, d => d.date_max)

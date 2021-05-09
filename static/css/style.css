@@ -41,3 +41,7 @@ body {
     top: 50%;
     transform: translateY(-50%);
 }
+
+.data-label {
+    font-size:0.75rem;
+}
